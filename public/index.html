@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LibSphere — Local Library Management & Copy Audit System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-book-bookmark"></i>
+        </div>
+        <div class="brand-text">
+          <h1>LibSphere <span class="badge-local">OFFLINE LOCAL</span></h1>
+          <p>Next-Gen Library & Copy Audit Management</p>
+        </div>
+      </div>
+
+      <div class="header-center-search">
+        <div class="global-search-wrapper">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="globalQuickSearch" placeholder="Quick audit search by Copy ID (e.g. RS10-008)..." autocomplete="off">
+          <button id="globalQuickSearchBtn" title="Inspect Copy"><i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btnQuickIssue">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Issue
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btnQuickReturn">
+          <i class="fa-solid fa-arrow-down-left-and-up-right-to-center"></i> Return
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnOpenAddBookModal">
+          <i class="fa-solid fa-plus"></i> Add Book
+        </button>
+        <a href="/api/export/backup" class="btn btn-outline btn-sm" title="Download Local Database Backup">
+          <i class="fa-solid fa-database"></i> Backup DB
+        </a>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs-wrapper">
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="dashboard">
+          <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </button>
+        <button class="nav-tab" data-tab="catalog">
+          <i class="fa-solid fa-books"></i> Books & Inventory
+        </button>
+        <button class="nav-tab highlight-tab" data-tab="inspector">
+          <i class="fa-solid fa-fingerprint"></i> Copy Audit Inspector
+        </button>
+        <button class="nav-tab" data-tab="circulation">
+          <i class="fa-solid fa-repeat"></i> Circulation Desk
+        </button>
+        <button class="nav-tab" data-tab="members">
+          <i class="fa-solid fa-users"></i> Members Directory
+        </button>
+        <button class="nav-tab" data-tab="logs">
+          <i class="fa-solid fa-clock-rotate-left"></i> History & Logs
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content Views Container -->
+  <main class="main-content">
+
+    <!-- ==============================================
+         TAB 1: DASHBOARD
+         ============================================== -->
+    <section id="tab-dashboard" class="tab-pane active">
+      <!-- Metrics Overview Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card metric-titles">
+          <div class="metric-icon"><i class="fa-solid fa-book"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Book Titles</span>
+            <h2 id="metricTitles">0</h2>
+            <span class="metric-sub">Cataloged subjects & editions</span>
+          </div>
+        </div>
+
+        <div class="metric-card metric-copies">
+          <div class="metric-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Total Physical Copies</span>
+            <h2 id="metricCopies">0</h2>
+            <span class="metric-sub" id="metricCopiesSub">Unique barcode items</span>
+          </div>
+        </div>
+
+        <div class="metric-card metric-available">
+          <div class="metric-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Available on Shelves</span>
+            <h2 id="metricAvailable">0</h2>
+            <span class="metric-sub text-success">Ready for issue</span>
+          </div>
+        </div>
+
+        <div class="metric-card metric-issued">
+          <div class="metric-icon"><i class="fa-solid fa-hand-holding-hand"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Currently Issued</span>
+            <h2 id="metricIssued">0</h2>
+            <span class="metric-sub text-warning" id="metricOverdueAlert">0 overdue</span>
+          </div>
+        </div>
+
+        <div class="metric-card metric-members">
+          <div class="metric-icon"><i class="fa-solid fa-id-badge"></i></div>
+          <div class="metric-info">
+            <span class="metric-label">Registered Members</span>
+            <h2 id="metricMembers">0</h2>
+            <span class="metric-sub">Students & Faculty</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action / Spotlight Banner -->
+      <div class="spotlight-banner">
+        <div class="spotlight-content">
+          <div class="spotlight-tag"><i class="fa-solid fa-shield-halved"></i> DAMAGE AUDIT GUARANTEE</div>
+          <h3>Torn Page or Damaged Copy Check</h3>
+          <p>Did a student return a book with damaged pages or markings? Quickly enter the copy code (e.g. <code>RS10-008</code>) into the Copy Inspector to reveal the complete timeline and hold the responsible borrower accountable.</p>
+        </div>
+        <div class="spotlight-action">
+          <button class="btn btn-primary" onclick="app.switchTab('inspector'); app.inspectCopy('RS10-008');">
+            <i class="fa-solid fa-magnifying-glass"></i> Test Inspect Copy RS10-008
+          </button>
+        </div>
+      </div>
+
+      <!-- Dashboard Split: Active Loans & Recent Circulation Activity -->
+      <div class="dashboard-split-grid">
+        <!-- Active Checkouts Glance -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-clock text-warning"></i>
+              <h3>Currently Issued Books</h3>
+            </div>
+            <button class="btn btn-link btn-xs" onclick="app.switchTab('circulation')">View All in Circulation</button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Copy Code</th>
+                    <th>Book Title</th>
+                    <th>Borrower</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="dashActiveLoansTable">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity Feed -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-bolt text-info"></i>
+              <h3>Recent Library Actions</h3>
+            </div>
+            <button class="btn btn-link btn-xs" onclick="app.switchTab('logs')">Full Log</button>
+          </div>
+          <div class="card-body p-0">
+            <div class="activity-feed" id="dashActivityFeed">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 2: BOOKS & INVENTORY CATALOG
+         ============================================== -->
+    <section id="tab-catalog" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Books Catalog & Stock Inventory</h2>
+          <p>Manage titles, view real-time availability, and expand any book to manage individual physical copies.</p>
+        </div>
+        <div class="section-actions">
+          <button class="btn btn-outline" id="btnExportBooksCsv">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+          </button>
+          <button class="btn btn-primary" id="btnAddNewBook">
+            <i class="fa-solid fa-plus"></i> Add New Book & Copies
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Controls Bar -->
+      <div class="filter-bar">
+        <div class="search-input-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="catalogSearchInput" placeholder="Search by book title, author, ISBN, or subject...">
+        </div>
+
+        <div class="filter-controls">
+          <select id="catalogCategoryFilter" class="form-control">
+            <option value="ALL">All Categories</option>
+          </select>
+
+          <select id="catalogStockFilter" class="form-control">
+            <option value="ALL">All Stock Status</option>
+            <option value="IN_STOCK">In Stock Only</option>
+            <option value="OUT_OF_STOCK">Out of Stock Only</option>
+          </select>
+
+          <button class="btn btn-secondary" id="btnResetCatalogFilters" title="Reset Filters">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Books Catalog List / Table -->
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="data-table catalog-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px;"></th>
+                  <th>Title & Details</th>
+                  <th>Author</th>
+                  <th>Category</th>
+                  <th>Shelf</th>
+                  <th>Availability & Stock</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="catalogTableBody">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+          <div id="catalogEmptyState" class="empty-state hidden">
+            <i class="fa-solid fa-book-open"></i>
+            <h4>No books matched your criteria</h4>
+            <p>Try clearing filters or add a new book to the catalog.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 3: COPY AUDIT INSPECTOR (DAMAGE TRACKER)
+         ============================================== -->
+    <section id="tab-inspector" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Copy Audit & Accountability Inspector</h2>
+          <p>Trace the complete lifetime history of any physical book copy, identify past borrowers, and check return condition notes.</p>
+        </div>
+      </div>
+
+      <!-- Search Box Card -->
+      <div class="card inspector-search-card">
+        <div class="card-body">
+          <label class="form-label" for="inspectorCopyCodeInput">
+            <i class="fa-solid fa-barcode"></i> Enter Physical Copy Accession / Barcode Code:
+          </label>
+          <div class="inspector-input-row">
+            <div class="search-input-box large">
+              <i class="fa-solid fa-fingerprint"></i>
+              <input type="text" id="inspectorCopyCodeInput" placeholder="e.g. RS10-008, RD10-001, HCV1-001, NCRT10-001" autocomplete="off">
+            </div>
+            <button class="btn btn-primary btn-lg" id="btnInspectCopy">
+              <i class="fa-solid fa-shield-halved"></i> Inspect History
+            </button>
+          </div>
+
+          <div class="quick-examples">
+            <span>Quick test examples:</span>
+            <button class="pill-btn" onclick="app.inspectCopy('RS10-008')">RS10-008 (Damaged page sample)</button>
+            <button class="pill-btn" onclick="app.inspectCopy('RS10-002')">RS10-002 (Active overdue sample)</button>
+            <button class="pill-btn" onclick="app.inspectCopy('HCV1-001')">HCV1-001 (Active physics loan)</button>
+            <button class="pill-btn" onclick="app.inspectCopy('RS10-001')">RS10-001 (Available copy)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspector Results Container -->
+      <div id="inspectorResults" class="inspector-results-container hidden">
+        <!-- Copy Profile Header Card -->
+        <div class="card copy-profile-card">
+          <div class="copy-profile-grid">
+            <div class="copy-badge-col">
+              <div class="copy-code-badge" id="inspCopyCode">RS10-008</div>
+              <div class="copy-status-tag" id="inspCopyStatus">ISSUED</div>
+              <button class="btn btn-xs btn-outline mt-2" id="btnEditCopyCondition">
+                <i class="fa-solid fa-pen"></i> Edit Condition
+              </button>
+            </div>
+
+            <div class="copy-info-col">
+              <h3 id="inspBookTitle">RS Aggarwal Mathematics - Class 10</h3>
+              <p class="copy-meta-sub">
+                <span><i class="fa-solid fa-user-pen"></i> <strong id="inspBookAuthor">R.S. Aggarwal</strong></span>
+                <span><i class="fa-solid fa-tag"></i> <span id="inspBookCategory">Mathematics</span></span>
+                <span><i class="fa-solid fa-location-dot"></i> <span id="inspBookShelf">Shelf A-1</span></span>
+                <span><i class="fa-solid fa-bookmark"></i> Edition: <span id="inspBookEdition">2025 Revised</span></span>
+              </p>
+              <div class="copy-current-condition">
+                <strong>Current Condition on Record:</strong>
+                <span id="inspConditionNote" class="condition-text">Good condition</span>
+              </div>
+            </div>
+
+            <div class="copy-stats-col">
+              <div class="mini-stat">
+                <span class="mini-label">Total Times Borrowed</span>
+                <span class="mini-val" id="inspTotalLoans">0</span>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="btnInspQuickIssueReturn">
+                Quick Action
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accountability Spotlight: Last Borrower vs Current Borrower -->
+        <div class="accountability-grid">
+          <!-- Current Active Borrower (If Issued) -->
+          <div class="card current-borrower-card" id="inspActiveBorrowerCard">
+            <div class="card-header highlight-header">
+              <div class="card-title">
+                <i class="fa-solid fa-user-clock text-warning"></i>
+                <h3>Currently In Possession Of</h3>
+              </div>
+              <span class="badge badge-warning">ACTIVE LOAN</span>
+            </div>
+            <div class="card-body">
+              <div id="inspActiveBorrowerDetails">
+                <!-- Dynamically filled -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Last Returned Borrower (Key for Damaged Book Detection!) -->
+          <div class="card last-borrower-card" id="inspLastBorrowerCard">
+            <div class="card-header highlight-header">
+              <div class="card-title">
+                <i class="fa-solid fa-user-check text-success"></i>
+                <h3>Last Borrower Who Returned This Copy</h3>
+              </div>
+              <span class="badge badge-info">PREVIOUS USER</span>
+            </div>
+            <div class="card-body">
+              <div id="inspLastBorrowerDetails">
+                <!-- Dynamically filled -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Complete Audit Trail Timeline -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-timeline text-primary"></i>
+              <h3>Complete Lifetime Borrowing Timeline</h3>
+            </div>
+            <span class="badge-sub">Chronological audit log for this specific physical copy</span>
+          </div>
+          <div class="card-body">
+            <div class="timeline" id="inspTimeline">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State / Guide -->
+      <div id="inspectorEmptyState" class="empty-state">
+        <i class="fa-solid fa-barcode"></i>
+        <h3>Ready to Inspect Any Copy</h3>
+        <p>Type any Copy Accession ID above or click one of the quick test pills to inspect who had the copy, when it was returned, and its recorded condition notes.</p>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 4: CIRCULATION DESK (ISSUE & RETURN)
+         ============================================== -->
+    <section id="tab-circulation" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Circulation Desk</h2>
+          <p>Issue available copies to members, check in returned books, inspect conditions, and manage active loans.</p>
+        </div>
+      </div>
+
+      <!-- Quick Issue & Return Dual Panels -->
+      <div class="circulation-grid">
+        <!-- Issue Book Form -->
+        <div class="card circulation-card">
+          <div class="card-header border-bottom">
+            <div class="card-title">
+              <i class="fa-solid fa-arrow-up-right-from-square text-success"></i>
+              <h3>Issue Book Copy</h3>
+            </div>
+            <span class="badge badge-success">CHECKOUT</span>
+          </div>
+          <div class="card-body">
+            <form id="issueBookForm">
+              <div class="form-group">
+                <label class="form-label" for="issueMemberSelect">Select Member *</label>
+                <select id="issueMemberSelect" class="form-control" required>
+                  <option value="">-- Choose Member --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="issueCopySelect">Select Available Physical Copy *</label>
+                <select id="issueCopySelect" class="form-control" required>
+                  <option value="">-- Choose Available Copy --</option>
+                </select>
+                <div class="form-hint" id="issueCopyDetailsHint">Stock updates automatically on issue</div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label class="form-label" for="issueDueDays">Loan Duration (Days)</label>
+                  <input type="number" id="issueDueDays" class="form-control" value="14" min="1" max="90">
+                </div>
+                <div class="form-group col-6">
+                  <label class="form-label">Calculated Due Date</label>
+                  <div class="form-static-val" id="issueCalculatedDueDate">-</div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="issueNotes">Checkout Notes (Optional)</label>
+                <input type="text" id="issueNotes" class="form-control" placeholder="e.g. Unit exam preparation, verified intact">
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-check"></i> Complete Book Issue
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Return Book Form -->
+        <div class="card circulation-card">
+          <div class="card-header border-bottom">
+            <div class="card-title">
+              <i class="fa-solid fa-arrow-down-left-and-up-right-to-center text-primary"></i>
+              <h3>Return & Condition Inspection</h3>
+            </div>
+            <span class="badge badge-info">CHECKIN</span>
+          </div>
+          <div class="card-body">
+            <form id="returnBookForm">
+              <div class="form-group">
+                <label class="form-label" for="returnCopySelect">Select Currently Issued Copy *</label>
+                <select id="returnCopySelect" class="form-control" required>
+                  <option value="">-- Choose Issued Copy to Return --</option>
+                </select>
+                <div class="form-hint" id="returnCopyDetailsHint">Select copy to view current borrower</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="returnConditionSelect">Physical Condition Inspection *</label>
+                <select id="returnConditionSelect" class="form-control">
+                  <option value="Good condition">Good Condition (Pristine / Normal Wear)</option>
+                  <option value="Minor wear, binding intact">Minor Wear (Cover crease, binding intact)</option>
+                  <option value="Torn page(s)">Torn Page(s) - Damage Recorded</option>
+                  <option value="Pencil or pen markings">Pencil / Pen Markings Detected</option>
+                  <option value="Water / liquid spill damage">Liquid Spill Damage</option>
+                  <option value="Severe damage (Needs Maintenance)">Severe Damage (Send to Maintenance)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="returnConditionRemarks">Detailed Condition Remarks</label>
+                <input type="text" id="returnConditionRemarks" class="form-control" placeholder="e.g. Page 12 torn at corner, borrower notified">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group col-6">
+                  <label class="form-label" for="returnFine">Overdue / Damage Fine (₹)</label>
+                  <input type="number" id="returnFine" class="form-control" value="0" min="0" step="1">
+                </div>
+                <div class="form-group col-6">
+                  <label class="form-label" for="returnMarkStatus">Set Copy Status to:</label>
+                  <select id="returnMarkStatus" class="form-control">
+                    <option value="AVAILABLE">AVAILABLE (Back on Shelf)</option>
+                    <option value="DAMAGED">DAMAGED (Quarantine)</option>
+                    <option value="MAINTENANCE">MAINTENANCE (Repair)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-secondary btn-block">
+                <i class="fa-solid fa-arrow-rotate-left"></i> Process Return & Record Audit
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Checkouts Full Table -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="fa-solid fa-list-check text-warning"></i>
+            <h3>All Active Loans (Currently Issued)</h3>
+          </div>
+          <span class="badge-sub" id="activeLoansCountBadge">0 active loans</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Copy Code</th>
+                  <th>Book Title</th>
+                  <th>Borrower</th>
+                  <th>Issue Date</th>
+                  <th>Due Date</th>
+                  <th>Overdue Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="activeLoansTableBody">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 5: MEMBERS DIRECTORY
+         ============================================== -->
+    <section id="tab-members" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Members Directory</h2>
+          <p>Register and manage students, faculty, and library cardholders.</p>
+        </div>
+        <div class="section-actions">
+          <button class="btn btn-primary" id="btnOpenAddMemberModal">
+            <i class="fa-solid fa-user-plus"></i> Register Member
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Members -->
+      <div class="filter-bar">
+        <div class="search-input-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="memberSearchInput" placeholder="Search member by name, code (e.g. MEM-101), phone, or email...">
+        </div>
+      </div>
+
+      <!-- Members Grid / Cards -->
+      <div class="members-grid" id="membersGrid">
+        <!-- Dynamically loaded -->
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 6: HISTORY & LOGS
+         ============================================== -->
+    <section id="tab-logs" class="tab-pane">
+      <div class="section-header">
+        <div>
+          <h2>Circulation History & Master Logs</h2>
+          <p>Audit trail of all checkouts, returns, conditions recorded, and fines collected.</p>
+        </div>
+        <div class="section-actions">
+          <a href="/api/export/backup" class="btn btn-outline">
+            <i class="fa-solid fa-download"></i> Backup library.db
+          </a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Log #</th>
+                  <th>Copy Code</th>
+                  <th>Book Title</th>
+                  <th>Member</th>
+                  <th>Issue Date</th>
+                  <th>Return Date</th>
+                  <th>Return Condition Recorded</th>
+                  <th>Fine</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyLogsTableBody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==============================================
+       MODALS
+       ============================================== -->
+
+  <!-- Modal: Add New Book & Batch Generate Copies -->
+  <div class="modal-overlay hidden" id="modalAddBook">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-book-medical text-primary"></i>
+          <h3>Add Book Title & Auto-Generate Physical Copies</h3>
+        </div>
+        <button class="modal-close" onclick="app.closeModal('modalAddBook')">&times;</button>
+      </div>
+      <form id="addBookForm">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group col-8">
+              <label class="form-label" for="addBookTitle">Book Title *</label>
+              <input type="text" id="addBookTitle" class="form-control" placeholder="e.g. RS Aggarwal Mathematics - Class 10" required>
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="addBookAuthor">Author *</label>
+              <input type="text" id="addBookAuthor" class="form-control" placeholder="e.g. R.S. Aggarwal" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-4">
+              <label class="form-label" for="addBookCategory">Category / Subject *</label>
+              <input type="text" id="addBookCategory" class="form-control" placeholder="e.g. Mathematics, Science" required>
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="addBookEdition">Edition</label>
+              <input type="text" id="addBookEdition" class="form-control" placeholder="e.g. 2026 Edition">
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="addBookShelf">Shelf Location</label>
+              <input type="text" id="addBookShelf" class="form-control" placeholder="e.g. Shelf A-3">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="addBookIsbn">ISBN / Catalog Code</label>
+            <input type="text" id="addBookIsbn" class="form-control" placeholder="e.g. 978-8177098488">
+          </div>
+
+          <div class="batch-copy-generator-box">
+            <h4><i class="fa-solid fa-copy text-info"></i> Physical Copies Batch Generator</h4>
+            <p>Specify how many physical copies exist in the library. Unique barcode IDs will be generated for each copy automatically.</p>
+
+            <div class="form-row">
+              <div class="form-group col-4">
+                <label class="form-label" for="addBookCopiesCount">Number of Copies *</label>
+                <input type="number" id="addBookCopiesCount" class="form-control" value="10" min="1" max="100" required>
+              </div>
+              <div class="form-group col-4">
+                <label class="form-label" for="addBookCopyPrefix">Copy Code Prefix *</label>
+                <input type="text" id="addBookCopyPrefix" class="form-control" value="RS10" placeholder="e.g. RS10, RD10, HCV1" required>
+              </div>
+              <div class="form-group col-4">
+                <label class="form-label">Generated Codes Preview</label>
+                <div class="code-preview" id="copyCodePreview">RS10-001 ... RS10-010</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddBook')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Book & Generate Copies</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add New Member -->
+  <div class="modal-overlay hidden" id="modalAddMember">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-user-plus text-primary"></i>
+          <h3>Register New Member</h3>
+        </div>
+        <button class="modal-close" onclick="app.closeModal('modalAddMember')">&times;</button>
+      </div>
+      <form id="addMemberForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="addMemberName">Full Name *</label>
+            <input type="text" id="addMemberName" class="form-control" placeholder="e.g. Aarav Sharma" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label class="form-label" for="addMemberCode">Member ID / Roll #</label>
+              <input type="text" id="addMemberCode" class="form-control" placeholder="Auto (e.g. MEM-106)">
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="addMemberRole">Role</label>
+              <select id="addMemberRole" class="form-control">
+                <option value="Student">Student</option>
+                <option value="Faculty">Faculty</option>
+                <option value="Staff">Staff</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="addMemberPhone">Phone Number</label>
+            <input type="text" id="addMemberPhone" class="form-control" placeholder="e.g. 9876543210">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="addMemberEmail">Email Address</label>
+            <input type="email" id="addMemberEmail" class="form-control" placeholder="e.g. aarav@school.edu">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddMember')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Register Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Book Copies Manager (Expanded view of single book) -->
+  <div class="modal-overlay hidden" id="modalBookCopies">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-layer-group text-primary"></i>
+          <div>
+            <h3 id="modalBookCopiesTitle">Book Physical Copies</h3>
+            <span class="modal-subtitle" id="modalBookCopiesSubtitle">All registered copies</span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="app.closeModal('modalBookCopies')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="copies-summary-bar">
+          <div id="modalBookCopiesStats" class="copies-stats-pill">
+            <!-- stats -->
+          </div>
+          <button class="btn btn-sm btn-outline" id="btnOpenAddMoreCopies">
+            <i class="fa-solid fa-plus"></i> Add Extra Copies
+          </button>
+        </div>
+
+        <div class="table-responsive mt-3">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Copy ID</th>
+                <th>Status</th>
+                <th>Condition Note</th>
+                <th>Current Borrower</th>
+                <th>Due Date</th>
+                <th style="text-align: right;">Inspect</th>
+              </tr>
+            </thead>
+            <tbody id="modalBookCopiesTableBody">
+              <!-- Loaded -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalBookCopies')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Member Loans History -->
+  <div class="modal-overlay hidden" id="modalMemberHistory">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-user-clock text-primary"></i>
+          <div>
+            <h3 id="modalMemberHistoryName">Member Borrowing History</h3>
+            <span class="modal-subtitle" id="modalMemberHistoryCode">MEM-101</span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="app.closeModal('modalMemberHistory')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Copy Code</th>
+                <th>Book Title</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Return Date</th>
+                <th>Condition / Remarks</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="modalMemberHistoryTableBody">
+              <!-- Loaded -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalMemberHistory')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

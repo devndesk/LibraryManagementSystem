@@ -1,0 +1,8 @@
+com\libmng\controller\ExportController.class
+com\libmng\controller\StatsController.class
+com\libmng\controller\MemberController.class
+com\libmng\controller\TransactionController.class
+com\libmng\config\DatabaseInit.class
+com\libmng\config\WebConfig.class
+com\libmng\LibraryApplication.class
+com\libmng\controller\BookController.class
